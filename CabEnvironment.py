@@ -16,10 +16,9 @@ class CabDriver():
 
     def __init__(self):
         """initialise your state and define your action space and state space"""
-        self.action_space = [(1,2), (2,1),(1,3), (3,1),(1,4), (4,1),(1,5), (5,1),(2,3), (3,2),(2,4), (4,2),(2,5), (5,2),
-                            (3,4), (4,3),(3,5), (5,3),(4,5), (5,4),(0,0)]
-        self.state_space =  [(a, b, c) for a in range(1, m+1) for b in range(t) for c in range(d)]
-        self.state_init =   random.choice([(1,0,0), (2,0,0), (3,0,0), (4,0,0), (5,0,0)])
+        self.action_space = [(p, q) for p in range(m) for q in range(m) if p != q or p == 0]
+        self.state_space = [(xi, tj, dk) for xi in range(m) for tj in range(t) for dk in range(d)]
+        #self.state_init =   random.choice([(1,0,0), (2,0,0), (3,0,0), (4,0,0), (5,0,0)])
 
         # Start the first round
         self.reset()
@@ -77,31 +76,26 @@ class CabDriver():
         actions = [self.action_space[i] for i in possible_actions_index]
         actions.append([0,0])
 
-        return possible_actions_index,actions   
-
-
+        return possible_actions_index,actions
 
     def reward_func(self, state, action, Time_matrix):
         """Takes in state, action and Time-matrix and returns the reward"""
         start_loc, time, day = state
         pickup, drop = action
-
-
         if action == [0, 0]:
-            return -C
+            reward = -C
         else:
-            time_elapsed_till_pickup = Time_matrix[start_loc, pickup, time, day]
-            time_next = np.int((time + time_elapsed_till_pickup) % t)
-            day_next = np.int((day + (time + time_elapsed_till_pickup) // t) % d)
-            timepicktodrop = Time_matrix[pickup, drop, time_next, day_next]
+            time_elapsed_till_pickup = Time_matrix[start_loc][pickup][time][day]
+            time_next = int(update_time(time,day,time_elapsed_till_pickup))
+            day_next = int(update_time(time,day,time_elapsed_till_pickup))
+            timepicktodrop = Time_matrix[pickup][drop][time_next][day_next]
             r_cost = R * timepicktodrop
-            c_cost = C * (timepicktodrop + Time_matrix[start_loc, pickup, time, day])
+            c_cost = C * (timepicktodrop + Time_matrix[start_loc][pickup][time][day])
             reward = r_cost - c_cost
-            return reward
+        return reward
 
 
-
-def next_state_func(self, state, action, Time_matrix):
+    def next_state_func(self, state, action, Time_matrix):
         """Takes state and action as input and returns next state"""
         next_state = []
 
@@ -110,11 +104,8 @@ def next_state_func(self, state, action, Time_matrix):
         wait_time = 0
         ride_time = 0
 
-        curr_loc = self.state_get_loc(state)
-        pickup_loc = self.action_get_pickup(action)
-        drop_loc = self.action_get_drop(action)
-        curr_time = self.state_get_time(state)
-        curr_day = self.state_get_day(state)
+        curr_loc, curr_time, curr_day = state
+        pickup_loc, drop_loc = action
 
         if ((pickup_loc == 0) and (drop_loc == 0)):
             wait_time = 1
@@ -146,37 +137,7 @@ def next_state_func(self, state, action, Time_matrix):
         return time, day
 
 
-    # all getters & setters are declared here
-    def state_get_loc(self, state):
-        return state[0]
-
-    def state_get_time(self, state):
-        return state[1]
-
-    def state_get_day(self, state):
-        return state[2]
-
-    def action_get_pickup(self, action):
-        return action[0]
-
-    def action_get_drop(self, action):
-        return action[1]
-
-    def state_set_loc(self, state, loc):
-        state[0] = loc
-
-    def state_set_time(self, state, time):
-        state[1] = time
-
-    def state_set_day(self, state, day):
-        state[2] = day
-
-    def action_set_pickup(self, action, pickup):
-        action[0] = pickup
-
-    def action_set_drop(self, action, drop):
-        action[1] = drop
-
     def reset(self):
         """Return the current state and action space"""
-        return self.action_space, self.state_space, self.state_init
+        self.state_init = random.choice([(0, 0, 0), (1, 0, 0), (2, 0, 0), (3, 0, 0), (4, 0, 0)])
+        return self.state_init
